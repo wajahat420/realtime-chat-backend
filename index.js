@@ -37,7 +37,18 @@ io.on("connection", (socket) => {
      const users =  removeUser(socket.id);
      io.emit("getUsers", users);
    });
- });
+
+   // socket.on('receiverActiveChatChecking', (data) => {
+   //    io.emit('receiverActiveChatResponse', data)
+   //    console.log("receiverActiveChatChecking", data);
+   // })
+
+});
+
+// io.on('receiverActiveChatResponse', (data) => {
+//    console.log("RESSSS", data);
+// })
+
 
 app.use(bodyParser.json({
    limit: '50mb'
@@ -51,7 +62,7 @@ app.use(bodyParser.urlencoded({
 
 app.use(cors());
 
-const db = 'mongodb+srv://wajahat:node123@first.uba9r.mongodb.net/myFirstDatabase?retryWrites=true&w=majority';
+const db = 'mongodb+srv://wajahat:node123@first.uba9r.mongodb.net/Realtime-Chat?retryWrites=true&w=majority';
 
 mongoose.connect(db, {
         useNewUrlParser: true,
@@ -71,6 +82,6 @@ app.use(function (req, res, next) {
    next();
 });
 
-// const message = require('./routes/message')
+const message = require('./routes/message')
 
-// app.use("/", message);
+app.use("/", message);
