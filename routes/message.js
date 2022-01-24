@@ -1,11 +1,17 @@
 const express = require("express");
 const router = express.Router();
-const { getUsers } = require('../socket/users')
 
 const User = require("../models/user")
 const Message = require("../models/message");
-const message = require("../models/message");
 
+const {getUsers} = require('../socket/users')
+
+router.use('/getUserStatus', (req,res) => {
+   const {id} = req.body
+
+   const user = getUsers().filter(elem => elem.userId === id)
+   res.send({type : user.length > 0 ?  'online' : 'offline'})
+})
 
 router.use('/lastSeen', async(req,res) => {
    const {id, date} = req.body
@@ -43,8 +49,6 @@ router.use("/getAllChats", async(req,res) => {
    let users = await User.find({})
    let user = await User.findOne({id : id})
    
-   // console.log("USER", user);
-
    let messages = await Message.find({})
 
    messages =  messages
@@ -73,11 +77,9 @@ router.use("/getAllChats", async(req,res) => {
 
    users.forEach(userObj => {
       find = messages.find(elem => userObj.id === elem.user.id || userObj.id == user.id)
-      // console.log("userrr", find);
       if(!find){
          messages.push({user : userObj})
       }
-      // messages.push()
    })
    res.send(messages)
 
@@ -92,7 +94,6 @@ router.use("/getChat", async(req, res)=> {
    block = await User.findOne(
       {id : senderID, blockUsers : {$in : receiverID}}
    )
-   // console.log("BLOCK", block, block !== null);
 
    const findChat = await Message.findOne({
       $and : [
@@ -112,7 +113,6 @@ router.use("/getChat", async(req, res)=> {
    })
 
    res.send({findChat, user, block : block !== null})
-   // res.send(block)
 
 })
 
@@ -147,9 +147,7 @@ router.use("/seenMsg", async(req,res) => {
 
 router.use("/sendMessage", async(req,res) => {
    const {receiverID, senderID, type, message} = req.body
-   // console.log("sendMessage", req.body);
-
-   req.io.emit('receiverActiveChat', req.body)
+   
 
    const findChat = await Message.findOne({
       $and : [
@@ -167,7 +165,6 @@ router.use("/sendMessage", async(req,res) => {
          }
       ]
    })
-   console.log("FIND",findChat);
    if(!findChat){
       const entry = new Message({
          user1 : receiverID,
@@ -177,7 +174,10 @@ router.use("/sendMessage", async(req,res) => {
       })
 
       entry.save()
-      .then(response => res.send("new chat created successfully"))
+      .then(response => {
+         req.io.emit('receiverActiveChat', req.body)
+         res.send("new chat created successfully")
+      })
       .catch(err => res.send(err))
    }else{
       const updating = await Message.updateOne(
@@ -187,78 +187,11 @@ router.use("/sendMessage", async(req,res) => {
             seen : false
          }
       )
+      req.io.emit('receiverActiveChat', req.body)
       res.send(updating)
    }
    
 
-})
-
-router.use('/sendMessageChecking', async(req,res) => {
-   const {receiverID, senderID, type, message, checked} = req.body
-   // console.log("checked", checked);
-   // req.io.emit('receiverActiveChatResponse', req.body)
-
-
-
-   // const values = new Message({
-   //    receiverID,
-   //    senderID,
-   //    type,
-   //    message,
-   //    // seen
-   // })
-   
-   // // const save = await obj.save()
-   // values.save()
-   // .then(response => {console.log("sendMessageToDB", response), res.send("saved successfuly"), req.io.emit("showMessage", req.body)})
-   // .catch(err => {console.log("err", err), res.send(err)})
-   res.send("send")
-})
-
-router.use('/sendMessageToDB', async(req,res) => {
-   const {receiverID, senderID, type, message, checked} = req.body
-   console.log("DB", req.body);
-   // req.io.emit("showMessage", req.body)
-
-   // const findChat = await Message.findOne({
-   //    $and : [
-   //       {
-   //          $or : [
-   //             {user1 : receiverID},
-   //             {user2 : senderID},
-   //          ]
-   //       },
-   //       {
-   //          $or : [
-   //             {user1 : senderID},
-   //             {user2 : receiverID},
-   //          ]
-   //       }
-   //    ]
-   // })
-   // console.log("FIND", findChat);
-
-   // const values = {
-   //    receiverID,
-   //    senderID,
-   //    type,
-   //    message,
-   //    time : new Date()
-   //    // seen
-   // }
-
-   // const values = new Message({
-   //    receiverID,
-   //    senderID,
-   //    type,
-   //    message,
-   //    // seen
-   // })
-   
-   // // const save = await obj.save()
-   // values.save()
-   // .then(response => {console.log("sendMessageToDB", response), res.send("saved successfuly"), req.io.emit("showMessage", req.body)})
-   // .catch(err => {console.log("err", err), res.send(err)})
 })
 
 module.exports = router;

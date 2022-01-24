@@ -34,22 +34,15 @@ io.on("connection", (socket) => {
    //take userId and socketId from user
    socket.on("addUser", (userId) => {
      addUser(userId, socket.id);
-   //   io.emit("getUsers", users);
    });
  
    //when disconnect
    socket.on("disconnect", () => {
      console.log("a user disconnected!");
-     const users =  removeUser(socket.id);
-     
-     io.emit("getUsers", users);
+     const user =  removeUser(socket.id);
+      // console.log("");
+     io.emit("userStatusChange", user);
    });
-
-
-   // socket.on('receiverActiveChatChecking', (data) => {
-   //    io.emit('receiverActiveChatResponse', data)
-   //    console.log("receiverActiveChatChecking", data);
-   // })
 
 });
 
@@ -72,7 +65,6 @@ const db = 'mongodb+srv://wajahat:node123@first.uba9r.mongodb.net/Realtime-Chat?
 mongoose.connect(db, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-      //   useCreateIndex: true
     })
     .then(() => {
         console.log("MongoDB Connected");
@@ -80,8 +72,6 @@ mongoose.connect(db, {
     .catch((err) => {
         console.log(err);
    });
-
-
 
 const message = require('./routes/message')
 

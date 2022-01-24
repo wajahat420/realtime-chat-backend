@@ -10,11 +10,15 @@ const addUser = (userId, socketId) => {
 };
 
 const removeUser = (socketId) => {
-  find = users.findIndex((user) => user.socketId !== socketId);
+  console.log("USERS", users);
+  console.log("socketId", socketId);
+  find = users.find((user) => user.socketId == socketId);
   users = users.filter((user) => user.socketId !== socketId);
-  console.log("socketID", socketId, users);
 
-  return users
+  console.log("all users", users);
+  console.log("remove", find);
+
+  return find
 };
 
 const getUsers = () => {
