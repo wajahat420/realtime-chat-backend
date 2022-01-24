@@ -19,7 +19,13 @@ const io = require('socket.io')(server, {
    }
 });
 
-const {addUser, removeUser} = require("./socket/users")
+const {addUser, removeUser, getUsers} = require("./socket/users")
+
+// Assign socket object to every request
+app.use(function (req, res, next) {
+   req.io = io;
+   next();
+});
 
 io.on("connection", (socket) => {
    //when ceonnect
@@ -27,16 +33,18 @@ io.on("connection", (socket) => {
  
    //take userId and socketId from user
    socket.on("addUser", (userId) => {
-     const users =  addUser(userId, socket.id);
-     io.emit("getUsers", users);
+     addUser(userId, socket.id);
+   //   io.emit("getUsers", users);
    });
  
    //when disconnect
    socket.on("disconnect", () => {
      console.log("a user disconnected!");
      const users =  removeUser(socket.id);
+     
      io.emit("getUsers", users);
    });
+
 
    // socket.on('receiverActiveChatChecking', (data) => {
    //    io.emit('receiverActiveChatResponse', data)
@@ -45,9 +53,6 @@ io.on("connection", (socket) => {
 
 });
 
-// io.on('receiverActiveChatResponse', (data) => {
-//    console.log("RESSSS", data);
-// })
 
 
 app.use(bodyParser.json({
@@ -76,11 +81,7 @@ mongoose.connect(db, {
         console.log(err);
    });
 
-// Assign socket object to every request
-app.use(function (req, res, next) {
-   req.io = io;
-   next();
-});
+
 
 const message = require('./routes/message')
 
