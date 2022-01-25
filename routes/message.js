@@ -13,6 +13,17 @@ router.use('/getUserStatus', (req,res) => {
    res.send({type : user.length > 0 ?  'online' : 'offline'})
 })
 
+
+router.use('/getLastSeen', async(req,res) => {
+   const { id } = req.body
+
+   const update = await User.findOne(
+      {id : id}
+   )
+
+   res.send(update)
+})
+
 router.use('/lastSeen', async(req,res) => {
    const {id, date} = req.body
 
@@ -45,7 +56,7 @@ router.use('/blockUser', async(req, res) => {
 
 router.use("/getAllChats", async(req,res) => {
    const {id} = req.body
-
+   console.log("GET ALL CHATS", req.body)
    let users = await User.find({})
    let user = await User.findOne({id : id})
    
@@ -55,7 +66,7 @@ router.use("/getAllChats", async(req,res) => {
                .filter(elem => (elem.user1 === user.id || elem.user2 === user.id))
                .map(elem => {
                   const lastMsg = elem.messages[elem.messages.length-1]
-
+                  
                   const obj = {
                      user : {},
                      messages: lastMsg,
@@ -76,8 +87,10 @@ router.use("/getAllChats", async(req,res) => {
                })
 
    users.forEach(userObj => {
+      console.log("USEROBJ",userObj.id, user.id);
       find = messages.find(elem => userObj.id === elem.user.id || userObj.id == user.id)
-      if(!find){
+      console.log("FIND",find);
+      if(find == undefined && userObj.id !== user.id){
          messages.push({user : userObj})
       }
    })
