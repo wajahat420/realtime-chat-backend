@@ -34,6 +34,7 @@ io.on("connection", (socket) => {
    //take userId and socketId from user
    socket.on("addUser", (userId) => {
      addUser(userId, socket.id);
+     io.emit("userStatusChange", {user:userId, type:'connect'});
    });
  
    //when disconnect
@@ -41,7 +42,7 @@ io.on("connection", (socket) => {
      console.log("a user disconnected!");
      const user =  removeUser(socket.id);
       // console.log("");
-     io.emit("userStatusChange", user);
+     io.emit("userStatusChange", {user, type:'disconnect'});
    });
 
 });
