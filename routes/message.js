@@ -4,7 +4,17 @@ const router = express.Router();
 const User = require("../models/user")
 const Message = require("../models/message");
 
-const {getUsers} = require('../socket/users')
+const {getUsers} = require('../socket/users');
+
+router.use('/work', (req,res)=>{
+   res.send('WORK')
+})
+
+
+const isUserOnline = (id) => {
+   const user = getUsers().filter(elem => elem.userId === id)
+   return({type : user.length > 0 ?  'online' : 'offline'})
+}
 
 router.use('/getUserStatus', (req,res) => {
    const {id} = req.body
@@ -12,7 +22,6 @@ router.use('/getUserStatus', (req,res) => {
    const user = getUsers().filter(elem => elem.userId === id)
    res.send({type : user.length > 0 ?  'online' : 'offline'})
 })
-
 
 router.use('/getLastSeen', async(req,res) => {
    const { id } = req.body
@@ -55,8 +64,8 @@ router.use('/blockUser', async(req, res) => {
 })
 
 router.use("/getAllChats", async(req,res) => {
-   const {id} = req.body
    console.log("GET ALL CHATS", req.body)
+   const {id} = req.body
    let users = await User.find({})
    let user = await User.findOne({id : id})
    
@@ -132,7 +141,7 @@ router.use("/getChat", async(req, res)=> {
 router.use("/seenMsg", async(req,res) => {
    const {receiverID, senderID, type, message} = req.body
 
-
+   console.log("BODY", req.body);
    const findChat = await Message.findOneAndUpdate(
       {
          $and : [
@@ -158,6 +167,18 @@ router.use("/seenMsg", async(req,res) => {
    res.send(findChat)
 })
 
+router.use('/hasReadMsg', (req,res) => {
+   const {senderID, isSeen} = req.body
+
+   delete req.body.isSeenReceiver
+
+   req.io.emit(senderID, {
+      ...req.body,
+      isSeenSender : ''
+   })
+   res.send(isSeen)
+})
+
 router.use("/sendMessage", async(req,res) => {
    const {receiverID, senderID, type, message} = req.body
    
@@ -178,6 +199,9 @@ router.use("/sendMessage", async(req,res) => {
          }
       ]
    })
+   const userStatus = isUserOnline(receiverID)
+
+
    if(!findChat){
       const entry = new Message({
          user1 : receiverID,
@@ -188,8 +212,19 @@ router.use("/sendMessage", async(req,res) => {
 
       entry.save()
       .then(response => {
-         req.io.emit('receiverActiveChat', req.body)
-         res.send("new chat created successfully")
+         // req.io.emit('receiverActiveChat', req.body)
+         if(userStatus == 'online'){   
+            req.io.emit(receiverID, {
+               ...req.body,
+               isSeenReceiver : ''
+            })
+   
+         }else{
+            req.io.emit(receiverID, req.body)
+         }
+         res.send({
+            userStatus
+         })
       })
       .catch(err => res.send(err))
    }else{
@@ -200,8 +235,22 @@ router.use("/sendMessage", async(req,res) => {
             seen : false
          }
       )
-      req.io.emit('receiverActiveChat', req.body)
-      res.send(updating)
+      // req.io.emit('receiverActiveChat', req.body)
+      if(userStatus.type == 'online'){   
+         req.io.emit(receiverID, {
+            ...req.body,
+            isSeenReceiver : ''
+         })
+
+      }else{
+         req.io.emit(receiverID, {
+            ...req.body,
+            check: userStatus.type
+         })
+      }
+      res.send({
+         userStatus
+      })
    }
    
 

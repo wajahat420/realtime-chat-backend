@@ -33,8 +33,9 @@ io.on("connection", (socket) => {
  
    //take userId and socketId from user
    socket.on("addUser", (userId) => {
-     addUser(userId, socket.id);
-     io.emit("userStatusChange", {user:userId, type:'connect'});
+      console.log("ADDING USER", userId);
+      addUser(userId, socket.id);
+      io.emit("userStatusChange", {user:userId, type:'connect'});
    });
  
    //when disconnect
@@ -77,3 +78,6 @@ mongoose.connect(db, {
 const message = require('./routes/message')
 
 app.use("/", message);
+app.use("/", (req, res) => {
+   res.send("CONNECTED")
+});
