@@ -3,6 +3,7 @@ const router = express.Router();
 
 const User = require("../models/user")
 const Message = require("../models/message");
+const Notifications = require('../models/notification')
 
 const {getUsers} = require('../socket/users');
 
@@ -212,19 +213,24 @@ router.use("/sendMessage", async(req,res) => {
 
       entry.save()
       .then(response => {
-         // req.io.emit('receiverActiveChat', req.body)
-         if(userStatus == 'online'){   
-            req.io.emit(receiverID, {
-               ...req.body,
-               isSeenReceiver : ''
+         saveNotification(req.body)
+         .then(response => {
+            if(userStatus == 'online'){   
+               req.io.emit(receiverID, {
+                  ...req.body,
+                  isSeenReceiver : ''
+               })
+      
+            }else{
+               req.io.emit(receiverID, req.body)
+            }
+            res.send({
+               userStatus
             })
-   
-         }else{
-            req.io.emit(receiverID, req.body)
-         }
-         res.send({
-            userStatus
          })
+         .catch(err => console.log('NOTI err', err))
+
+
       })
       .catch(err => res.send(err))
    }else{
@@ -235,25 +241,74 @@ router.use("/sendMessage", async(req,res) => {
             seen : false
          }
       )
-      // req.io.emit('receiverActiveChat', req.body)
-      if(userStatus.type == 'online'){   
-         req.io.emit(receiverID, {
-            ...req.body,
-            isSeenReceiver : ''
+      saveNotification(req.body)
+      .then(response => {
+         if(userStatus.type == 'online'){   
+            req.io.emit(receiverID, {
+               ...req.body,
+               isSeenReceiver : ''
+            })
+   
+         }else{
+            req.io.emit(receiverID, {
+               ...req.body,
+               check: userStatus.type
+            })
+         }
+         res.send({
+            userStatus
          })
-
-      }else{
-         req.io.emit(receiverID, {
-            ...req.body,
-            check: userStatus.type
-         })
-      }
-      res.send({
-         userStatus
       })
+      .catch(err => console.log('NOTI err', err))
+
+
    }
    
 
 })
+
+router.use('/getNoti', async(req,res)=>{
+   const {id} = req.body
+
+   const data = []
+
+   const noti = await Notifications.find({ receiverID : id }).sort({ time : -1 })
+   // const get = await getUsersData(noti)
+
+   noti.forEach(async(elem, index) => {
+      const user = await User.findOne({ id : elem.senderID })
+      data.push({noti : elem, user})
+
+      if( index == noti.length -1 ){
+         res.send(data)
+      }
+   })
+   if(noti.length == 0){   
+      res.send([])
+   }
+   
+})
+
+// const getUsersData = (noti) => {
+//    const data = []
+
+//    return new Promise(function(resolve, reject){
+//       noti.forEach(async(elem) => {
+//          const user = await User.findOne({ id : elem.senderID })
+//          data.push({noti, user})
+//       })
+//       resolve(data)
+//    })
+// }
+
+const saveNotification = (data) => {
+   return new Promise(function(resolve, reject){
+      const obj = new Notifications(data)
+      obj.save()
+      .then(res => resolve(res))
+      .catch(err => reject(err))
+   })
+
+}
 
 module.exports = router;
