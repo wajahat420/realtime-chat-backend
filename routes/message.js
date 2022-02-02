@@ -114,10 +114,12 @@ router.use("/getChat", async(req, res)=> {
 
    let user = await User.findOne({id : receiverID})
 
-   block = await User.findOne(
+   block1 = await User.findOne(
       {id : senderID, blockUsers : {$in : receiverID}}
    )
-
+   block2 = await User.findOne(
+      {id : receiverID, blockUsers : {$in : senderID}}
+   )
    const findChat = await Message.findOne({
       $and : [
          {
@@ -135,7 +137,7 @@ router.use("/getChat", async(req, res)=> {
       ]
    })
 
-   res.send({findChat, user, block : block !== null})
+   res.send({findChat, user, block : block1 !== null || block2 !== null, byMe : block1 !== null ? 'yes' : block2 !== null  ? 'no' : ''})
 
 })
 
