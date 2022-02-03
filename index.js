@@ -76,8 +76,11 @@ mongoose.connect(db, {
    });
 
 const message = require('./routes/message')
+const user = require('./routes/user')
 
 app.use("/", message);
+app.use('/user', user)
+
 app.use("/", (req, res) => {
    res.send("CONNECTED")
 });

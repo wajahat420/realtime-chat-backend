@@ -18,6 +18,15 @@ const UserSchema = new Schema({
       },
       lastSeen : {
          type : String
+      },
+      token : {
+         type : String
+      },
+      email : {
+         type : String
+      },
+      password : {
+         type : String
       }
 
 })

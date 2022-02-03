@@ -1,16 +1,87 @@
 const express = require("express");
 const router = express.Router();
 
+// const admin  =  require('../config/firebase-config')
+
+var admin = require("firebase-admin");
+
+var serviceAccount = require("../config/db.json");
+
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://my-project-1-5f5ff.firebaseio.com"
+})
+
+
+
+const options = {
+   priority: "high",
+   timeToLive: 60 * 60 * 24
+ };
+
+
 const User = require("../models/user")
 const Message = require("../models/message");
 const Notifications = require('../models/notification')
 
 const {getUsers} = require('../socket/users');
 
-router.use('/work', (req,res)=>{
-   res.send('WORK')
+router.use('/notification', (req,res)=>{
+   admin
+   .messaging()
+   .sendToDevice(
+      'fcRlXlm8SPu1TyIPILX1QN:APA91bHwtDvXqeX1-QOqiwgJ7zmVSIx6-QVIXrjbUZfJB_q9Z1EX0nNvik1n2J3ZHsSqar1n4kHBruIRchqO-fnQSq-Cr9qspvMp6f36EeStsUNhxubU48e5Okal2hgwB9JUT-a8MnEi'
+      ,{
+         data : {
+            key : 'a',
+            key2 : 'b'
+         },
+         notification : {
+            title : 'heyy',
+            body : 'hi'
+         }
+      }, 
+       options
+      )
+   .then( response => {
+
+    res.status(200).send("Notification sent successfully")
+    
+   })
+   .catch( error => {
+       console.log(error);
+   })
+   // res.send('WORK')
 })
 
+const sendNoti = (token, user, message) => {
+      admin
+      .messaging()
+      .sendToDevice(
+         token
+         ,{
+            // data : {
+            //    key : 'a',
+            //    key2 : 'b'
+            // },
+            notification : {
+               title : user,
+               body : message
+            }
+         }, 
+         options
+         )
+      .then( response => {
+
+      // res.status(200).send("Notification sent successfully")
+      
+      })
+      .catch( error => {
+         console.log(error);
+      })
+   // res.send('WORK')
+}
 
 const isUserOnline = (id) => {
    const user = getUsers().filter(elem => elem.userId === id)
@@ -202,6 +273,10 @@ router.use("/sendMessage", async(req,res) => {
          }
       ]
    })
+
+   const receiver = await User.findOne({ id : receiverID })
+   const sender = await User.findOne({ id : senderID })
+
    const userStatus = isUserOnline(receiverID)
 
 
@@ -217,6 +292,9 @@ router.use("/sendMessage", async(req,res) => {
       .then(response => {
          saveNotification(req.body)
          .then(response => {
+
+
+
             if(userStatus == 'online'){   
                req.io.emit(receiverID, {
                   ...req.body,
@@ -226,7 +304,9 @@ router.use("/sendMessage", async(req,res) => {
             }else{
                req.io.emit(receiverID, req.body)
             }
-            res.send({
+            if(receiver.token){
+               sendNoti(receiver.token, sender.name, message)
+            }            res.send({
                userStatus
             })
          })
@@ -256,6 +336,9 @@ router.use("/sendMessage", async(req,res) => {
                ...req.body,
                check: userStatus.type
             })
+         }
+         if(receiver.token){
+            sendNoti(receiver.token, sender.name, message)
          }
          res.send({
             userStatus
